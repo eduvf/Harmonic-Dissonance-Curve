@@ -3,6 +3,11 @@ function setup() {
 	const RESOLUTION = 2 ** 12;
 	const BUF_LENGTH = floor(RESOLUTION / 4);
 
+	// Variables per carregar el so
+	sndIsLoaded = false;
+	sndLoadCol = 'white';
+	sndLoadMsg = "Sound not loaded, please click the 'load sound' button.";
+
 	// Inicialitza els arrays
 	buffer = Array(BUF_LENGTH).fill(0);
 	bufferArray = [];
@@ -21,7 +26,25 @@ function setup() {
 	createCanvas(500, 600);
 	createButton('load sound').mousePressed(() => {
 		// Carrega el so
-		snd = loadSound('Bowl-tib-A#3-f.wav');
+		snd = loadSound(
+			'sounds/Bowl-tib-A%233-f.wav',
+			() => {
+				// S'ha carregat bé
+				sndLoadCol = 'lime';
+				sndLoadMsg = 'Sound loaded successfully!';
+				sndIsLoaded = true;
+			},
+			() => {
+				// Hi ha hagut un error
+				sndLoadCol = 'red';
+				sndLoadMsg =
+					'Error loading the sound... Refresh the page and/or try again';
+			},
+			() => {
+				// S'està carregant el so
+				sndLoadMsg = 'Loading sound...';
+			}
+		);
 		// Inicialitza l'FFT
 		fft = new p5.FFT(0, RESOLUTION);
 		fft.setInput(snd);
@@ -133,7 +156,11 @@ function calcDissonance() {
 function draw() {
 	background(0);
 
-	if (snd.isPlaying()) {
+	noStroke();
+	fill(sndLoadCol);
+	text(sndLoadMsg, 10, 20);
+
+	if (sndIsLoaded && snd.isPlaying()) {
 		// Analitza l'FFT
 		let spec = fft.analyze();
 
@@ -147,7 +174,7 @@ function draw() {
 	if (storeAverage) {
 		noStroke();
 		fill('red');
-		text('Saving buffer state...', 10, 20);
+		text('Saving buffer state...', 10, 40);
 		bufferArray.push(buffer.slice());
 	}
 
@@ -155,7 +182,7 @@ function draw() {
 	if (spikesKeep) {
 		noStroke();
 		fill('lime');
-		text('Spikes kept!', 10, 20);
+		text('Spikes kept!', 10, 40);
 	}
 
 	// Calcula la corba de dissonància
