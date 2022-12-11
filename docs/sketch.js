@@ -1,11 +1,12 @@
+function preload() {
+	// Carrega el so
+	snd = loadSound('./Bowl-tib-A#3-f.wav');
+}
+
 function setup() {
 	// Config
 	const RESOLUTION = 2 ** 12;
 	const BUF_LENGTH = floor(RESOLUTION / 4);
-
-	// Carrega el so
-	snd = loadSound('Bowl-tib-A#3-f.wav');
-	//snd = loadSound("sweep.wav");
 
 	// Inicialitza l'FFT
 	fft = new p5.FFT(0, RESOLUTION);
