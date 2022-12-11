@@ -1,16 +1,7 @@
-function preload() {
-	// Carrega el so
-	snd = loadSound('./Bowl-tib-A#3-f.wav');
-}
-
 function setup() {
 	// Config
 	const RESOLUTION = 2 ** 12;
 	const BUF_LENGTH = floor(RESOLUTION / 4);
-
-	// Inicialitza l'FFT
-	fft = new p5.FFT(0, RESOLUTION);
-	fft.setInput(snd);
 
 	// Inicialitza els arrays
 	buffer = Array(BUF_LENGTH).fill(0);
@@ -28,6 +19,13 @@ function setup() {
 
 	// Interfície
 	createCanvas(500, 600);
+	createButton('load sound').mousePressed(() => {
+		// Carrega el so
+		snd = loadSound('Bowl-tib-A#3-f.wav');
+		// Inicialitza l'FFT
+		fft = new p5.FFT(0, RESOLUTION);
+		fft.setInput(snd);
+	});
 	createButton('play').mousePressed(() => snd.play());
 	createButton('stop').mousePressed(() => snd.stop());
 	createButton('average').mousePressed(() => calcAverage());
