@@ -21,25 +21,23 @@ sndState = "Sound not loaded, please click any 'load sound' button.";
 
 //--------------------------------------------------------------
 
-function init() {
+function initVariables() {
 	bufActive = Array(BUF_LENGTH).fill(0);
 	bufStatic = Array(BUF_LENGTH).fill(0);
 	bufSpikes = Array(BUF_LENGTH).fill(0);
 	bufSmooth = Array(BUF_LENGTH).fill(0);
 	bufDiffer = Array(BUF_LENGTH).fill(0);
+	bufDisson = Array(BUF_LENGTH).fill(0);
 
-	arrayBufActive = [];
-	arrayBufStatic = [];
-	arrayBufSmooth = [];
+	storeAverage = false;
+	arrayAverage = [];
 
-	offset = 0;
-}
-
-function getCanvasWidth() {
-	return windowWidth < canvasWidth + 20 ? windowWidth - 20 : canvasWidth;
+	offsetDiffer = 0;
+	offsetDisson = 0;
 }
 
 function getSnd(s) {
+	sndReady = false; // inhabilita el so, per si de cas
 	snd = loadSound(
 		s,
 		() => {
@@ -82,13 +80,13 @@ function analyzeFFT() {
 
 function calcAverage() {
 	// Calcula la mitjana de tots els arrays desats a
-	// 'arrayBufActive', desant-ne el resultat a 'bufStatic'
+	// 'arrayAverage', desant-ne el resultat a 'bufStatic'
 	for (let i = 0; i < BUF_LENGTH; i++) {
 		let sum = 0;
-		arrayBufActive.forEach((buf) => {
+		arrayAverage.forEach((buf) => {
 			sum += buf[i];
 		});
-		bufStatic[i] = sum / arrayBufActive.length;
+		bufStatic[i] = sum / arrayAverage.length;
 	}
 }
 
@@ -115,7 +113,6 @@ function calcSmooth(value) {
 			bufSmooth[i + j - mid] += win[j] * x * value;
 		}
 	}
-
 	// Ajusta al rang
 	let m = max(bufSmooth);
 	for (let i = 0; i < BUF_LENGTH; i++) {
@@ -123,7 +120,57 @@ function calcSmooth(value) {
 	}
 }
 
+function calcDiffer() {
+	// Calcula la diferència entre 'bufSmooth' fixe i
+	// 'bufSmooth' + 'offsetDiffer' i avança l'offset
+	for (let i = 0; i < BUF_LENGTH; i++) {
+		let j = (i + offsetDiffer) % BUF_LENGTH;
+		bufDiffer[i] = abs(bufSmooth[i] - bufSmooth[j]);
+	}
+	offsetDiffer++;
+}
+
+function calcDisson() {
+	// Calcula la corba de dissonància
+	if (offsetDisson < BUF_LENGTH) {
+		// Introdueix la suma de la dissonància
+		let sum = bufDiffer.reduce((total, n) => total + n);
+		// Ajusta al màxim valor possible (màxima dissonància)
+		// quan cap harmònic coincideix
+		let maxPossible = bufSmooth.reduce((total, n) => total + n) * 2;
+		// Mapeja-ho dins del rang 0-255
+		bufDisson[offsetDisson] = map(sum, 0, maxPossible, 0, 255);
+
+		offsetDisson++;
+	} else {
+		offsetDisson = 0;
+	}
+}
+
 //--------------------------------------------------------------
+
+// Executa en cada frame
+function update() {
+	// Si s'està reproduint el so, fes-ne l'anàlisi
+	if (sndReady) {
+		if (snd.isPlaying()) {
+			analyzeFFT();
+		}
+	}
+	// Desa l'espectre
+	if (storeAverage) {
+		noStroke();
+		fill('red');
+		text("Saving buffer state... Press 'store' again to stop.", 10, 40);
+		arrayAverage.push(bufActive.slice());
+	}
+}
+
+//--------------------------------------------------------------
+
+function getCanvasWidth() {
+	return windowWidth < canvasWidth + 20 ? windowWidth - 20 : canvasWidth;
+}
 
 function drawSpectrum(col, buf, top, bottom) {
 	noFill();
@@ -141,13 +188,20 @@ function drawSpectrum(col, buf, top, bottom) {
 //--------------------------------------------------------------
 
 function setup() {
-	init();
+	initVariables();
 	createCanvas(getCanvasWidth(), canvasHeight);
 
 	createButton('play').mousePressed(() => snd.play());
 	createButton('stop').mousePressed(() => snd.stop());
-	createButton('B');
-	createButton('X');
+	createButton('store').mousePressed(() => (storeAverage = !storeAverage));
+	createButton('average').mousePressed(() => calcAverage());
+	createButton('spikes').mousePressed(() => calcSpikes(sliderSpikes.value));
+	createButton('smooth').mousePressed(() => calcSmooth(sliderSmooth.value));
+	createButton('difference').mousePressed(() => calcDiffer());
+	createButton('dissonance').mousePressed(() => calcDisson());
+	createElement('hr');
+	sliderSpikes = createSlider(0, 256, 128);
+	sliderSmooth = createSlider(0.5, 2, 1);
 	createElement('hr');
 	createButton('load bowl sound').mousePressed(() =>
 		getSnd('sounds/Bowl-tib-A%233-f.wav')
@@ -158,17 +212,20 @@ function setup() {
 function draw() {
 	background(0);
 
+	update();
+
 	// Mostra l'estat del so (carregat o no)
 	noStroke();
 	fill(sndColor);
 	text(sndState, 10, 20);
 
 	// Mostra les corbes
-	drawSpectrum('magenta', bufActive, height * 0.25, 0);
-	drawSpectrum('cyan', bufStatic, height * 0.25, 0);
-	drawSpectrum('lime', bufSpikes, height * 0.5, height * 0.25);
-	drawSpectrum('yellow', bufSmooth, height * 0.75, height * 0.5);
-	drawSpectrum('white', bufDiffer, height, height * 0.75);
+	drawSpectrum('red', bufActive, height * 0.2, 0);
+	drawSpectrum('magenta', bufStatic, height * 0.2, 0);
+	drawSpectrum('cyan', bufSpikes, height * 0.4, height * 0.2);
+	drawSpectrum('lime', bufSmooth, height * 0.6, height * 0.4);
+	drawSpectrum('yellow', bufDiffer, height * 0.8, height * 0.6);
+	drawSpectrum('white', bufDisson, height * 1.0, height * 0.8);
 }
 
 function windowResized() {
