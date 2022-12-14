@@ -7,7 +7,7 @@ const canvasWidth = 800;
 const canvasHeight = 500;
 
 // FFT config
-const RESOLUTION = 2 ** 10;
+const RESOLUTION = 2 ** 12;
 const BUF_LENGTH = RESOLUTION / 4;
 
 // Init FFT
@@ -34,6 +34,8 @@ function initVariables() {
 
 	offsetDiffer = 0;
 	offsetDisson = 0;
+
+	animDisson = false;
 }
 
 function getSnd(s) {
@@ -79,15 +81,20 @@ function analyzeFFT() {
 }
 
 function calcAverage() {
-	// Calcula la mitjana de tots els arrays desats a
-	// 'arrayAverage', desant-ne el resultat a 'bufStatic'
-	for (let i = 0; i < BUF_LENGTH; i++) {
-		let sum = 0;
-		arrayAverage.forEach((buf) => {
-			sum += buf[i];
-		});
-		bufStatic[i] = sum / arrayAverage.length;
+	if (storeAverage) {
+		// Calcula la mitjana de tots els arrays desats a
+		// 'arrayAverage', desant-ne el resultat a 'bufStatic'
+		for (let i = 0; i < BUF_LENGTH; i++) {
+			let sum = 0;
+			arrayAverage.forEach((buf) => {
+				sum += buf[i];
+			});
+			bufStatic[i] = sum / arrayAverage.length;
+		}
+		// Buida l'array
+		arrayAverage.length = 0;
 	}
+	storeAverage = !storeAverage;
 }
 
 function calcSpikes(value) {
@@ -102,15 +109,17 @@ function calcSpikes(value) {
 	}
 }
 
-function calcSmooth(value) {
+function calcSmooth() {
+	// Buida l'array
+	bufSmooth.fill(0);
 	// Aplica una convolució (la finestra 'win') als pics
 	// ('bufSpikes') i desa el resultat a 'bufSmooth'
-	let win = [0.1, 0.2, 0.5, 0.8, 0.9, 1, 0.9, 0.8, 0.5, 0.2, 0.1];
+	let win = [0.1, 0.5, 0.9, 1, 0.9, 0.5, 0.1];
 	let mid = floor(win.length / 2);
 	for (let i = mid; i < BUF_LENGTH - mid; i++) {
 		let x = bufSpikes[i];
-		for (let j = 0; j < len; j++) {
-			bufSmooth[i + j - mid] += win[j] * x * value;
+		for (let j = 0; j < win.length; j++) {
+			bufSmooth[i + j - mid] += win[j] * x;
 		}
 	}
 	// Ajusta al rang
@@ -124,8 +133,9 @@ function calcDiffer() {
 	// Calcula la diferència entre 'bufSmooth' fixe i
 	// 'bufSmooth' + 'offsetDiffer' i avança l'offset
 	for (let i = 0; i < BUF_LENGTH; i++) {
-		let j = (i + offsetDiffer) % BUF_LENGTH;
-		bufDiffer[i] = abs(bufSmooth[i] - bufSmooth[j]);
+		let j = i - offsetDiffer;
+		let offVal = j < 0 ? 0 : bufSmooth[j];
+		bufDiffer[i] = abs(bufSmooth[i] - offVal);
 	}
 	offsetDiffer++;
 }
@@ -133,6 +143,7 @@ function calcDiffer() {
 function calcDisson() {
 	// Calcula la corba de dissonància
 	if (offsetDisson < BUF_LENGTH) {
+		calcDiffer();
 		// Introdueix la suma de la dissonància
 		let sum = bufDiffer.reduce((total, n) => total + n);
 		// Ajusta al màxim valor possible (màxima dissonància)
@@ -143,14 +154,13 @@ function calcDisson() {
 
 		offsetDisson++;
 	} else {
+		offsetDiffer = 0;
 		offsetDisson = 0;
+		animDisson = false;
 	}
 }
 
-//--------------------------------------------------------------
-
-// Executa en cada frame
-function update() {
+function updateFrame() {
 	// Si s'està reproduint el so, fes-ne l'anàlisi
 	if (sndReady) {
 		if (snd.isPlaying()) {
@@ -161,8 +171,12 @@ function update() {
 	if (storeAverage) {
 		noStroke();
 		fill('red');
-		text("Saving buffer state... Press 'store' again to stop.", 10, 40);
+		text("Saving buffer state... Press 'average' again to stop.", 10, 40);
 		arrayAverage.push(bufActive.slice());
+	}
+	// Calcula la corba
+	if (animDisson) {
+		calcDisson();
 	}
 }
 
@@ -191,19 +205,21 @@ function setup() {
 	initVariables();
 	createCanvas(getCanvasWidth(), canvasHeight);
 
-	createButton('play').mousePressed(() => snd.play());
+	createButton('2. play').mousePressed(() => snd.play());
 	createButton('stop').mousePressed(() => snd.stop());
-	createButton('store').mousePressed(() => (storeAverage = !storeAverage));
-	createButton('average').mousePressed(() => calcAverage());
-	createButton('spikes').mousePressed(() => calcSpikes(sliderSpikes.value));
-	createButton('smooth').mousePressed(() => calcSmooth(sliderSmooth.value));
-	createButton('difference').mousePressed(() => calcDiffer());
-	createButton('dissonance').mousePressed(() => calcDisson());
-	createElement('hr');
+	// createButton('store').mousePressed(() => (storeAverage = !storeAverage));
+	createButton('3. average').mousePressed(() => calcAverage());
+	// createButton('spikes').mousePressed(() => calcSpikes(sliderSpikes.value()));
+	createSpan('4.');
 	sliderSpikes = createSlider(0, 256, 128);
-	sliderSmooth = createSlider(0.5, 2, 1);
+	sliderSpikes.changed(() => calcSpikes(sliderSpikes.value()));
+	createButton('5. smooth').mousePressed(() => calcSmooth());
+	// createButton('difference').mousePressed(() => (animDiffer = true));
+	createButton('6. dissonance').mousePressed(
+		() => (animDisson = !animDisson)
+	);
 	createElement('hr');
-	createButton('load bowl sound').mousePressed(() =>
+	createButton('1. load bowl sound').mousePressed(() =>
 		getSnd('sounds/Bowl-tib-A%233-f.wav')
 	);
 	createFileInput(getUserSnd);
@@ -212,7 +228,7 @@ function setup() {
 function draw() {
 	background(0);
 
-	update();
+	updateFrame();
 
 	// Mostra l'estat del so (carregat o no)
 	noStroke();
@@ -220,12 +236,12 @@ function draw() {
 	text(sndState, 10, 20);
 
 	// Mostra les corbes
-	drawSpectrum('red', bufActive, height * 0.2, 0);
-	drawSpectrum('magenta', bufStatic, height * 0.2, 0);
-	drawSpectrum('cyan', bufSpikes, height * 0.4, height * 0.2);
-	drawSpectrum('lime', bufSmooth, height * 0.6, height * 0.4);
-	drawSpectrum('yellow', bufDiffer, height * 0.8, height * 0.6);
-	drawSpectrum('white', bufDisson, height * 1.0, height * 0.8);
+	drawSpectrum('#F00', bufActive, height * 0.15, 0);
+	drawSpectrum('#F0F', bufStatic, height * 0.15, 0);
+	drawSpectrum('#0FF', bufSpikes, height * 0.35, height * 0.2);
+	drawSpectrum('#0F0', bufSmooth, height * 0.55, height * 0.4);
+	drawSpectrum('#FF0', bufDiffer, height * 0.75, height * 0.6);
+	drawSpectrum('#FFF', bufDisson, height * 1.0, height * 0.8);
 }
 
 function windowResized() {
