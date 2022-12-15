@@ -289,7 +289,7 @@ function setRatio(octave, equalDivisions) {
 }
 
 function keyPressed() {
-	let k = keyboard.indexOf(key) + 1;
+	let k = keyboard.indexOf(key);
 	if (k >= 0) {
 		snd.rate(ratio ** k);
 		snd.play();
