@@ -218,11 +218,32 @@ function setup() {
 	createButton('6. dissonance').mousePressed(
 		() => (animDisson = !animDisson)
 	);
+
 	createElement('hr');
+
 	createButton('1. load bowl sound').mousePressed(() =>
 		getSnd('sounds/Bowl-tib-A%233-f.wav')
 	);
+	createButton('1. load piano sound').mousePressed(() =>
+		getSnd('sounds/random_piano.mp3')
+	);
+	createButton('1. load test sound').mousePressed(() =>
+		getSnd('sounds/test_octaves.wav')
+	);
 	createFileInput(getUserSnd);
+
+	/*
+	createElement('hr');
+
+	sliderOctave = createSlider(1.5, 2.5, 2, 0.1);
+	sliderETDivi = createSlider(6, 24, 12);
+	sliderOctave.changed(() =>
+		setRatio(sliderOctave.value(), sliderETDivi.value())
+	);
+	sliderETDivi.changed(() =>
+		setRatio(sliderOctave.value(), sliderETDivi.value())
+	);
+	*/
 }
 
 function draw() {
@@ -246,4 +267,28 @@ function draw() {
 
 function windowResized() {
 	resizeCanvas(getCanvasWidth(), height);
+}
+
+//--------------------------------------------------------------
+
+keyboard = (() => {
+	let keyString = '1234567890qwertyuiopasdfghjklzxcvbnm';
+	let array = [];
+	for (let char of keyString) {
+		array.push(char);
+	}
+	return array;
+})();
+ratio = 2 ** (1 / 12);
+
+function setRatio(octave, equalDivisions) {
+	ratio = octave ** (1 / equalDivisions);
+}
+
+function keyPressed() {
+	let k = keyboard.indexOf(key) + 1;
+	if (k >= 0) {
+		snd.rate(ratio ** k);
+		snd.play();
+	}
 }
