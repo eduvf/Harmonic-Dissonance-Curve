@@ -230,6 +230,9 @@ function setup() {
 	createButton('1. load test sound').mousePressed(() =>
 		getSnd('sounds/test_octaves.wav')
 	);
+	createButton('1. load square wave sound').mousePressed(() =>
+		getSnd('sounds/sqr_wave.wav')
+	);
 	createFileInput(getUserSnd);
 
 	/*
