@@ -154,8 +154,6 @@ function calcDisson() {
 
 		offsetDisson++;
 	} else {
-		offsetDiffer = 0;
-		offsetDisson = 0;
 		animDisson = false;
 	}
 }
@@ -215,9 +213,11 @@ function setup() {
 	sliderSpikes.changed(() => calcSpikes(sliderSpikes.value()));
 	createButton('5. smooth').mousePressed(() => calcSmooth());
 	// createButton('difference').mousePressed(() => (animDiffer = true));
-	createButton('6. dissonance').mousePressed(
-		() => (animDisson = !animDisson)
-	);
+	createButton('6. dissonance').mousePressed(() => {
+		offsetDiffer = 0;
+		offsetDisson = 0;
+		animDisson = !animDisson;
+	});
 
 	createElement('hr');
 
