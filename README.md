@@ -17,7 +17,9 @@ You can see below an example from Sethares' book using a simple harmonic sound.
 This repository contains the relevant files for a p5.js sketch to create a dissonance curve from a given sound, on the fly, using JavaScript. Currently, it's usable but still WIP, as I add more features:
 
 -   [x] create a curve from a sound
--   [ ] better visualization
--   [ ] more sound examples (maybe the user could upload a sound to analyze?)
+-   [x] better visualization
+-   [x] more sound examples (maybe the user could upload a sound to analyze?)
 -   [ ] create a scale base on the curve
--   [ ] simple keyboard to play the scale
+-   [x] simple keyboard to play the scale
+-   [ ] visualize keyboard on the curve
+-   [ ] change keyboard tuning
